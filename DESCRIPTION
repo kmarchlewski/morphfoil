@@ -1,0 +1,16 @@
+Package: morphfoil
+Type: Package
+Title: Morphing of an airfoil mesh for xred solver
+Version: 0.1.0
+Author: Krzysztof Marchlewski
+Maintainer: Krzysztof Marchlewski <kmarchlewski@meil.pw.edu.pl>
+Description: A collection of functions useful for morphing a mesh
+    in a msh2 format for a flow over an airfoil.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    fields
+RoxygenNote: 7.1.1
+Suggests: 
+    testthat
