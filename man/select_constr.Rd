@@ -13,7 +13,7 @@ select_constr(airfoil, surf, limits)
 of the airfoil.}
 
 \item{limits}{A matrix which in each row contains limits within wich
-the constraint points should lie.}
+the constraining points should lie.}
 }
 \value{
 A list of two elements: a logical vector (\code{$sel}) indicating

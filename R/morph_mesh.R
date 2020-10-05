@@ -61,7 +61,7 @@ create_normals <- function(X, sel) {
 #' @param surf A character string indicating upper or lower curve
 #'    of the airfoil.
 #' @param limits A matrix which in each row contains limits within wich
-#'    the constraint points should lie.
+#'    the constraining points should lie.
 #'
 #' @return A list of two elements: a logical vector (\code{$sel}) indicating
 #'    which points are selected and a data frame (\code{$coord}) containing
@@ -169,8 +169,8 @@ select_morphp <- function (airfoil, surf, xcoord) {
 #' @param constr_lo A list of two elements: a logical vector indicating
 #'    which points are selected as lower constraints and a data frame containing
 #'    coordinates of the selected points.
-#' @param par_up A vector of displacements in the upper morphing points.
-#' @param par_lo A vector of displacements in the lower morphing points.
+#' @param par_up A vector of displacements for the upper morphing points.
+#' @param par_lo A vector of displacements for the lower morphing points.
 #' @param theta A vector of covariance radii for the morphing points.
 #' @param theta_constr A vector of covariance radii for
 #'    the constraining points.
@@ -287,4 +287,112 @@ morph_mesh <- function (
   mesh_mod$coord[sel_lo, 2] <- mesh_mod$coord[sel_lo, 2] + F_loy
 
   return(mesh_mod)
+}
+
+#' Morph an airfoil
+#'
+#' The function morphs the airfoil according to movements of morphing points,
+#' locations of constrains and parameters.
+#' The morphing technique is based on Gaussian Processes with zero mean.
+#'
+#' @param airfoil A data frame having three columns: x coordinates of points,
+#'    y coordinates of the upper points and y coordinates of the lower points.
+#' @param morph_up A list containing a logical vector indicating selected
+#'    upper points and a data frame consisting of coordinates of the points.
+#' @param morph_lo A list containing a logical vector indicating selected
+#'    lower points and a data frame consisting of coordinates of the points.
+#' @param constr_up A list of two elements: a logical vector indicating
+#'    which points are selected as upper constraints and a data frame containing
+#'    coordinates of the selected points.
+#' @param constr_lo A list of two elements: a logical vector indicating
+#'    which points are selected as lower constraints and a data frame containing
+#'    coordinates of the selected points.
+#' @param par_up A vector of displacements for the upper morphing points.
+#' @param par_lo A vector of displacements for the lower morphing points.
+#' @param theta A vector of covariance radii for the morphing points.
+#' @param theta_constr A vector of covariance radii for
+#'    the constraining points.
+#'
+#' @return The output list contains: a head of the file (\code{$head}),
+#' modified mesh points (\code{$coord}) and a file tail (\code{$tail}).
+#'
+#' @source \url{https://arxiv.org/abs/1311.6190}
+#'
+#' @examples
+#' # Select constraint points
+#' constr_up <- select_constr(rae2822_airfoil, "up", rbind(c(0, 0), c(1, 1)))
+#' constr_lo <- select_constr(rae2822_airfoil, "lo", rbind(c(0, 0), c(1, 1)))
+#'
+#' # Select morphing points
+#' x_coord <- seq(0.15, 0.9, len = 5)
+#' morph_up <- select_morphp(rae2822_airfoil, "up", x_coord)
+#' morph_lo <- select_morphp(rae2822_airfoil, "lo", x_coord)
+#'
+#' # Set parameters values
+#' par_up <- rep(0.02, len = 5)
+#' par_lo <- rep(0, len = 5)
+#'
+#' # Set covariance radii
+#' theta <- c(0.1, 0.1)
+#' theta_constr <- c(0.01, 0.01)
+#'
+#' # Create a modified airofil
+#' airfoil_mod <- morph_airfoil(
+#'   rae2822_airfoil,
+#'   morph_up, morph_lo, constr_up, constr_lo,
+#'   par_up, par_lo, theta, theta_constr
+#' )
+#'
+#' # Plot the modified airfoil
+#' plot_airfoil(airfoil_mod, morph_up, morph_lo, constr_up, constr_lo)
+#'
+#' @export
+
+morph_airfoil <- function (
+  airfoil, morph_up, morph_lo, constr_up, constr_lo,
+  par_up, par_lo, theta, theta_constr) {
+
+  ## Create tables of points
+  Xup_morph <- morph_up$coord
+  Xup_constr <- constr_up$coord
+  Xup <- airfoil[, c("x", "yup")]
+
+  Xlo_morph <- morph_lo$coord
+  Xlo_constr <- constr_lo$coord
+  Xlo <- airfoil[, c("x", "ylo")]
+
+  ## Create covariance matrixes
+  K_up <- create_covM(Xup_morph, Xup_morph, Xup_constr, theta, theta_constr)
+  K_lo <- create_covM(Xlo_morph, Xlo_morph, Xlo_constr, theta, theta_constr)
+
+  k_up <- create_covM(Xup, Xup_morph, Xup_constr, theta, theta_constr)
+  k_lo <- create_covM(Xlo, Xlo_morph, Xlo_constr, theta, theta_constr)
+
+  ## Calculate displacements in the morphing points
+  f_upx <- par_up * morph_up$vec[, 1]
+  f_upy <- par_up * morph_up$vec[, 2]
+  f_lox <- par_lo * morph_lo$vec[, 1]
+  f_loy <- par_lo * morph_lo$vec[, 2]
+
+  ## Calculate airfoil points locations after morphing
+  F_upx <- k_up %*% ((solve(K_up + diag(1e-8, length(par_up))))%*% f_upx)
+  F_lox <- k_lo %*% (solve(K_lo + diag(1e-8, length(par_lo))) %*% f_lox)
+
+  F_upy <- k_up %*% ((solve(K_up + diag(1e-8, length(par_up))))%*% f_upy)
+  F_loy <- k_lo %*% (solve(K_lo + diag(1e-8, length(par_lo))) %*% f_loy)
+
+  ## Create a modified airfoil
+  airfoil_mod <- data.frame(
+    xlo = airfoil$x,
+    xup = airfoil$x,
+    ylo = airfoil$ylo,
+    yup = airfoil$yup
+  )
+
+  airfoil_mod$xup <- airfoil_mod$xup + F_upx
+  airfoil_mod$yup <- airfoil_mod$yup + F_upy
+  airfoil_mod$xlo <- airfoil_mod$xlo + F_lox
+  airfoil_mod$ylo <- airfoil_mod$ylo + F_loy
+
+  return(airfoil_mod)
 }

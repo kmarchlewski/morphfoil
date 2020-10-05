@@ -10,7 +10,10 @@ plot_airfoil(
   morph_lo,
   constr_up,
   constr_lo,
-  air_points = TRUE
+  airfoil_points = TRUE,
+  control = TRUE,
+  add = FALSE,
+  ...
 )
 }
 \arguments{
@@ -24,8 +27,16 @@ plot_airfoil(
 
 \item{constr_lo}{A list of lower constraints.}
 
-\item{air_points}{A logical value indicating if the airfoil
+\item{airfoil_points}{A logical value indicating if the airfoil
 coordinate points should be plotted.}
+
+\item{control}{A logical value indicating if constraining points,
+morphing points and morphing vectors should be plotted.}
+
+\item{add}{A logical value indicating if a plot should be added to
+a previous one.}
+
+\item{...}{Additional parameters passed to the \code{graphics} functions.}
 }
 \description{
 The function plots an airfoil.
@@ -34,7 +45,7 @@ The function plots an airfoil.
    \code{\link[graphics]{arrows}} functions.
 }
 \examples{
-# Select constraint points
+# Select constraining points
 constr_up <- select_constr(rae2822_airfoil, "up", rbind(c(0, 0), c(1, 1)))
 constr_lo <- select_constr(rae2822_airfoil, "lo", rbind(c(0, 0), c(1, 1)))
 

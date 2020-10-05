@@ -1,11 +1,9 @@
 
 ## Load functions from a package
-
 devtools::load_all()
 
 ## Document package and prepare NAMESPACE file
-
-devtools::document()
+# devtools::document()
 
 ## Test package
 
@@ -16,7 +14,7 @@ devtools::document()
 # devtools::test()
 
 ## Full R CMD check:
-devtools::check()
+# devtools::check()
 
 ## Load mesh and airfoil data
 
@@ -69,10 +67,30 @@ mesh_mod <- morph_mesh(
   theta, theta_constr
 )
 
+## Create a morphed airfoil
+
+airfoil_mod <- morph_airfoil(
+  airfoil,
+  morph_up, morph_lo,
+  constr_up, constr_lo,
+  par_up, par_lo,
+  theta, theta_constr
+)
+
+## Plot the morphed airfoil
+plot_airfoil(
+  airfoil, morph_up, morph_lo, constr_up, constr_lo,
+  control = F, airfoil_points = T
+)
+plot_airfoil(
+  airfoil_mod, morph_up, morph_lo, constr_up, constr_lo,
+  control = F, airfoil_points = T, add = T, col = "blue"
+)
+
 ## Plot the morphed mesh
 
-plot_mesh(mesh_mod, airfoil)
+plot_mesh(mesh_mod, airfoil_mod)
 
 ## Write the morphed mesh to the .msh2 file
 
-write_mesh(mesh_mod_name, mesh_mod)
+# write_mesh(mesh_mod_name, mesh_mod)
